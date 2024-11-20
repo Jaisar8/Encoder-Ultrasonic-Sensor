@@ -1,0 +1,76 @@
+pip install matplotlib pyserial
+
+import serial
+import time
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+# Configuración de la conexión serial con Arduino
+arduino = serial.Serial('COM3', 9600, timeout=1)  # Cambia 'COM3' por tu puerto serial
+time.sleep(2)  # Espera para establecer la conexión
+
+# Listas para almacenar los datos
+encoder_data = []
+distance_data = []
+time_data = []
+start_time = time.time()
+
+# Configuración de la gráfica
+plt.style.use('fivethirtyeight')
+fig, (ax1, ax2) = plt.subplots(2, 1)
+fig.suptitle("Datos en Tiempo Real del Encoder y Sensor Ultrasonido")
+
+def leer_datos():
+    try:
+        data = arduino.readline().decode().strip()  # Leer datos del serial
+        if data:
+            # Parsear datos del Arduino (separados por coma)
+            encoder_valor, distancia = map(float, data.split(", "))
+            # Calcular el tiempo transcurrido
+            current_time = time.time() - start_time
+
+            # Agregar datos a las listas
+            encoder_data.append(encoder_valor)
+            distance_data.append(distancia)
+            time_data.append(current_time)
+
+            # Limitar el tamaño de los datos para evitar sobrecarga
+            if len(time_data) > 100:
+                time_data.pop(0)
+                encoder_data.pop(0)
+                distance_data.pop(0)
+        else:
+            print("No se recibieron datos")
+    except Exception as e:
+        print(f"Error al leer datos: {e}")
+
+def actualizar_grafico(frame):
+    leer_datos()
+    ax1.clear()
+    ax2.clear()
+
+    # Gráfico del encoder
+    ax1.plot(time_data, encoder_data, label='Pulsos del Encoder')
+    ax1.set_xlabel('Tiempo (s)')
+    ax1.set_ylabel('Pulsos')
+    ax1.legend(loc="upper left")
+
+    # Gráfico del sensor ultrasónico
+    ax2.plot(time_data, distance_data, color='orange', label='Distancia (cm)')
+    ax2.set_xlabel('Tiempo (s)')
+    ax2.set_ylabel('Distancia (cm)')
+    ax2.legend(loc="upper left")
+
+# Configuración de la animación
+ani = FuncAnimation(fig, actualizar_grafico, interval=500)  # Actualizar cada 500 ms
+plt.show()
+
+# Cierre seguro de la conexión serial al final
+try:
+    while True:
+        pass  # Mantener la gráfica abierta
+except KeyboardInterrupt:
+    print("Finalizando programa")
+finally:
+    arduino.close()
+
