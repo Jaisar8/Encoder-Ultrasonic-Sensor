@@ -1,0 +1,28 @@
+import serial
+import time
+
+# Configurar la conexión serial con el Arduino
+arduino = serial.Serial('COM3', 9600, timeout=1)  # Ajustar COM según tu puerto
+time.sleep(2)  # Espera para establecer la conexión
+
+def leer_datos():
+    try:
+        arduino.write(b'LEER\n')  # Comando opcional para sincronización (si se necesita en el Arduino)
+        data = arduino.readline().decode().strip()  # Leer datos del serial
+        if data:
+            print(data)  # Imprimir datos en consola
+            encoder_valor, distancia = data.split(", ")
+            print(f"Pulsos del Encoder: {encoder_valor}, Distancia: {distancia} cm")
+        else:
+            print("No se recibieron datos")
+    except Exception as e:
+        print(f"Error al leer datos: {e}")
+
+try:
+    while True:
+        leer_datos()
+        time.sleep(0.5)  # Intervalo de lectura de datos
+except KeyboardInterrupt:
+    print("Finalizando programa")
+finally:
+    arduino.close()
